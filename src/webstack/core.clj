@@ -12,7 +12,7 @@
   (-> ctx :request :params k))
 
 (defn ping [_]
-  (ring/text-plain-response "ping"))
+  (ring/text-plain-response "pong"))
 
 (lib/defresource home-page
   :allowed-methods [:get]
