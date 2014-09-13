@@ -5,7 +5,10 @@
             [stencil.core :as stenc]))
 
 (defn- render-template [template data-map]
-  (stenc/render-file (str "templates/" "page.mustache") data-map))
+  (stenc/render-file (str "templates/" template) data-map))
+
+(defn- param [ctx k]
+  (-> ctx :request :params k))
 
 (lib/defresource ping
   :available-media-types ["text/plain"]
@@ -15,13 +18,9 @@
   :allowed-methods [:get]
   :available-media-types ["text/html"]
   :handle-ok (fn [ctx]
-               (render-template "page.mustache"
-                                {:content (-> ctx :request :params :msg)})))
+               (render-template "page.mustache" {:content (param ctx :msg)})))
 
 (defonce comments-atom (atom {}))
-
-(defn- param [ctx k]
-  (-> ctx :request :params k))
 
 (lib/defresource comments
   :allowed-methods [:get :post :put :delete]
