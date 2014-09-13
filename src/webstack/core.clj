@@ -33,12 +33,16 @@
   :handle-ok ::comment)
 ;; SEE: http://clojure-liberator.github.io/liberator/tutorial/all-together.html
 
-(def ^:private r clout/route-compile)
+(defn ->routes [& uris+handlers]
+  (mapv (fn [[uri handler]]
+          [(clout/route-compile uri) handler])
+        (partition 2 uris+handlers)))
 
 (def ^:private routes
-  {(r "/")                   home-page
-   (r "/ping")               ping
-   (r "/resources/comments") comments})
+  (->routes
+   "/"                   home-page
+   "/ping"               ping
+   "/resources/comments" comments))
 
 (defn handler [req]
   (if-let [{hdlr :handler
