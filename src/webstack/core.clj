@@ -1,6 +1,7 @@
 (ns webstack.core
   (:require [clout.core :as clout]
             [kits.clout :as kc]
+            [kits.ring :as ring]
             [liberator.core :as lib]
             [stencil.core :as stenc]))
 
@@ -10,9 +11,8 @@
 (defn- param [ctx k]
   (-> ctx :request :params k))
 
-(lib/defresource ping
-  :available-media-types ["text/plain"]
-  :handle-ok "pong")
+(defn ping [_]
+  (ring/text-plain-response "ping"))
 
 (lib/defresource home-page
   :allowed-methods [:get]
