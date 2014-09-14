@@ -1,6 +1,7 @@
 (ns webstack.main
   (:require [clojure.tools.nrepl.server :as nrepl]
-            [webstack.server :as server])
+            [webstack.server :as server]
+            [webstack.dev :refer :all])
   (:gen-class))
 
 (defn -main [& args]

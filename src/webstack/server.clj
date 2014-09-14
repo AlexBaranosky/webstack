@@ -2,16 +2,21 @@
   (:require [ring.adapter.jetty :as ring]
             [ring.middleware.keyword-params :as keyword-params]
             [ring.middleware.params :as params]
+            [ring.middleware.resource :as resource]
+            [ring.middleware.stacktrace :as stacktrace]
             [ring.util.response :as response]
+            [webstack.dev :refer :all]
             [webstack.server.handlers :as handlers]
             [webstack.server.helpers :as h]
             [webstack.server.resources :as resources]))
 
 (def ^:private routes
-  (h/->routes
+  (h/routes
    "/"                   #'resources/home-page
    "/ping"               #'handlers/ping
-   "/resources/comments" #'resources/comments))
+   "/resources/comments" #'resources/comments
+   "/om"                 #'handlers/om
+   "/javascripts/*"      :ignored))
 
 (defn- handler [req]
   (if-let [{hdlr :handler
@@ -21,7 +26,9 @@
 
 (def app (-> handler
              keyword-params/wrap-keyword-params
-             params/wrap-params))
+             params/wrap-params
+             (resource/wrap-resource "public")
+             stacktrace/wrap-stacktrace))
 
 (defn start [port]
   (ring/run-jetty #'app {:port port

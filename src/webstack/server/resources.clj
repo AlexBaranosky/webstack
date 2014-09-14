@@ -1,6 +1,7 @@
 (ns webstack.server.resources
   (:require [kits.ring :as ring]
             [liberator.core :as lib]
+            [webstack.dev :refer :all]
             [webstack.server.helpers :as h]))
 
 (lib/defresource home-page
