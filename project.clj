@@ -7,4 +7,7 @@
                  [liberator "0.12.1"]
                  [org.clojure/clojure "1.7.0-alpha2"]
                  [org.clojars.runa/kits "1.19.25"]
-                 [stencil "0.3.4"]])
+                 [org.clojure/tools.nrepl "0.2.5"]
+                 [ring "1.3.1"]
+                 [stencil "0.3.4"]]
+  :main webstack.main)

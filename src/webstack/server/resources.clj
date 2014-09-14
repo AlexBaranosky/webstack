@@ -1,10 +1,7 @@
-(ns webstack.resources
+(ns webstack.server.resources
   (:require [kits.ring :as ring]
             [liberator.core :as lib]
-            [webstack.helpers :as h]))
-
-(defn ping [_]
-  (ring/text-plain-response "pong"))
+            [webstack.server.helpers :as h]))
 
 (lib/defresource home-page
   :allowed-methods [:get]

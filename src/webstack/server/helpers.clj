@@ -1,4 +1,4 @@
-(ns webstack.helpers
+(ns webstack.server.helpers
   (:require [clout.core :as clout]
             [kits.clout :as kc]
             [stencil.core :as stenc]))
