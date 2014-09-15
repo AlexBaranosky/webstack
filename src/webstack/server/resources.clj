@@ -4,12 +4,6 @@
             [webstack.dev :refer :all]
             [webstack.server.helpers :as h]))
 
-(lib/defresource home-page
-  :allowed-methods [:get]
-  :available-media-types ["text/html"]
-  :handle-ok (fn [ctx]
-               (h/render-template "page.mustache" {:content (h/param ctx :msg)})))
-
 (defonce comments-atom (atom {})) ;; in comments.clj
 
 (lib/defresource comments

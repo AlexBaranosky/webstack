@@ -12,7 +12,7 @@
 
 (def ^:private routes
   (h/routes
-   "/"                   #'resources/home-page
+   "/"                   #'handlers/home-page
    "/ping"               #'handlers/ping
    "/resources/comments" #'resources/comments
    "/om"                 #'handlers/om
