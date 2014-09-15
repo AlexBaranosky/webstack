@@ -8,8 +8,10 @@
 
 (defn home-page [request]
   (ring/html-response
-   (h/render-template "page.mustache" {:content (-> request :params :msg)})))
+   (h/render-template "page.mustache" {:title "Home"
+                                       :content (-> request :params :msg)})))
 
 (defn om [_]
   (ring/html-response
-   (h/render-template "om.mustache" {:cljs-ns "webstack.core"})))
+   (h/render-template "om.mustache" {:title "Om App"
+                                     :cljs-ns "webstack.core"})))
