@@ -12,11 +12,8 @@
                  [org.clojure/tools.nrepl "0.2.5"]
                  [om "0.7.3"]
                  [print-foo "0.5.3"]
-                 [racehub/om-bootstrap "0.2.8"]
                  [ring "1.3.1"]
-                 [stencil "0.3.4"]
-                 [weasel "0.3.0"]]
-  :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+                 [stencil "0.3.4"]]
   :cljsbuild {:builds [{:id "dev"
                         :source-paths ["cljs/src"]
                         :compiler {:output-to "resources/public/javascripts/main.js"

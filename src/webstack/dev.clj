@@ -1,8 +1,6 @@
 (ns webstack.dev
-  (:require [cemerick.piggieback :as piggieback]
-            [clojure.string :as str]
-            [kits.homeless :as hl]
-            [weasel.repl.websocket :as websocket]))
+  (:require [clojure.string :as str]
+            [kits.homeless :as hl]))
 
 (hl/immigrate ;; ['criterium.core :except ['report 'warn]]
  'print.foo
@@ -11,8 +9,3 @@
 (defmacro look [arg]
   `(tap ~(str/upper-case (str arg ":: "))
         ~arg))
-
-(defn repl!
-  "Starts a Clojurescript repl."
-  []
-  (piggieback/cljs-repl :repl-env (websocket/repl-env)))
