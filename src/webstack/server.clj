@@ -1,6 +1,7 @@
 (ns webstack.server
   (:require [ring.adapter.jetty :as ring]
             [ring.middleware.keyword-params :as keyword-params]
+            [ring.middleware.nested-params :as nested-params]
             [ring.middleware.params :as params]
             [ring.middleware.resource :as resource]
             [ring.middleware.stacktrace :as stacktrace]
@@ -12,11 +13,11 @@
 
 (def ^:private routes
   (h/routes
-   "/"                   #'handlers/home-page
-   "/ping"               #'handlers/ping
-   "/resources/comments" #'resources/comments
-   "/om"                 #'handlers/om
-   "/javascripts/*"      :ignored))
+   "/"                  #'handlers/home-page
+   "/ping"              #'handlers/ping
+   "/resources/comment" #'resources/comment
+   "/om"                #'handlers/om
+   "/javascripts/*"     :ignored))
 
 (defn- handler [req]
   (if-let [{hdlr :handler
@@ -27,6 +28,7 @@
 (def app (-> handler
              keyword-params/wrap-keyword-params
              params/wrap-params
+             nested-params/wrap-nested-params
              (resource/wrap-resource "public")
              stacktrace/wrap-stacktrace))
 
