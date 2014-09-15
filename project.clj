@@ -4,6 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[clout "1.2.0"]
+                 [com.cemerick/friend "0.2.1" :exclusions [ring/ring-core]]
                  [liberator "0.12.1"]
                  [org.clojure/clojure "1.7.0-alpha2"]
                  [org.clojure/clojurescript "0.0-2322"]

@@ -1,0 +1,19 @@
+<form action="/login" method="post">
+  <div>
+    <input id="username-input" name="username" type="text" value=""/>
+    <label id="username-label" for="user-input">Username</label>
+  </div>
+
+  <div>
+    <input id="passowrd-input" name="password" type="password" value=""/>
+    <label id="password-label" for="password-input">Password</label>
+  </div>
+  
+  {{#login_failed}} 
+    <div id="login-fail-msg">
+      Sorry {{username}}, the combination of username and password you chose were incorrect.
+    </div>
+  {{/login_failed}}
+
+  <input id="login-submit" name="submit" type="submit" value="submit"/>
+</form>

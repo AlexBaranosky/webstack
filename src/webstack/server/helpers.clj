@@ -10,10 +10,12 @@
 (defn param [ctx k]
   (-> ctx :request :params k))
 
-(defn routes [& uris+handlers]
-  (mapv (fn [[uri handler]]
-          [(clout/route-compile uri) handler])
-        (partition 2 uris+handlers)))
+(defn routes [{rts :routes middleware :middleware}]
+  (->> (partition 2 rts)
+       (mapv (fn [[uri handler]]
+               (if middleware
+                 [(clout/route-compile uri) (middleware handler)]
+                 [(clout/route-compile uri) handler])))))
 
 (defn find-matching-handler [routes uri]
   (kc/find-matching-handler routes uri))
