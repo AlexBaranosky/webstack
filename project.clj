@@ -10,12 +10,13 @@
                  [org.clojure/clojurescript "0.0-2322"]
                  [org.clojars.runa/kits "1.19.25"]
                  [org.clojure/tools.nrepl "0.2.5"]
+                 [com.cemerick/piggieback "0.1.3"]
                  [om "0.7.3"]
                  [print-foo "0.5.3"]
                  [racehub/om-bootstrap "0.2.8"]
                  [ring "1.3.1"]
                  [stencil "0.3.4"]
-                 [weasel "0.3.0"]]
+                 [weasel "0.4.0-SNAPSHOT"]]
   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
   :cljsbuild {:builds [{:id "dev"
                         :source-paths ["cljs/src"]
