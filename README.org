@@ -1,1 +1,3 @@
-* Webstack of Liberator + Clout + Mustache + Om
+* Webstack of Liberator + Clout + Mustache + Om + Weasel
+
+** goto localhost:9444/om and then in a CLJ repl run =webstack.dev/repl!= to start Weasel CLJS repl 
