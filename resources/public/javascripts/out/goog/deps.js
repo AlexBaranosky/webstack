@@ -84,3 +84,6 @@ goog.addDependency("net/xpc/crosspagechannel.js", ['goog.net.xpc.CrossPageChanne
 goog.addDependency("net/websocket.js", ['goog.net.WebSocket', 'goog.net.WebSocket.ErrorEvent', 'goog.net.WebSocket.EventType', 'goog.net.WebSocket.MessageEvent'], ['goog.Timer', 'goog.asserts', 'goog.debug.entryPointRegistry', 'goog.events', 'goog.events.Event', 'goog.events.EventTarget', 'goog.log']);
 goog.addDependency("string/stringformat.js", ['goog.string.format'], ['goog.string']);
 goog.addDependency("ui/idgenerator.js", ['goog.ui.IdGenerator'], []);
+goog.addDependency("crypt/crypt.js", ['goog.crypt'], ['goog.array', 'goog.asserts']);
+goog.addDependency("crypt/base64.js", ['goog.crypt.base64'], ['goog.crypt', 'goog.userAgent']);
+goog.addDependency("math/long.js", ['goog.math.Long'], []);
