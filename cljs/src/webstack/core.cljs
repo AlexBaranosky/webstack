@@ -40,7 +40,7 @@
                 :name "Nexus 7"}])
 
 (defn- product-category-row [category]
-  (dom/tr {}
+  (dom/tr nil
           (dom/th {:colSpan "2"}
                   category)))
 
@@ -48,36 +48,46 @@
   (let [name (if stocked 
                name
                (dom/span {:style "color:\"red\""} name))]
-    (dom/tr {}
-            (dom/tr {} name)
-            (dom/tr {} price))))
+    (dom/tr nil
+            (dom/tr nil name)
+            (dom/tr nil price))))
 
-(defn- product-table [products]
-  (dom/table {}
-             (dom/thead {} 
-                        (dom/tr {}
-                                (dom/th {} "Name")
-                                (dom/th {} "Price")))
+(defn- product-table [products filter-text in-stock-only?]
+  (dom/table nil
+             (dom/thead nil 
+                        (dom/tr nil
+                                (dom/th nil "Name")
+                                (dom/th nil "Price")))
              (->> products
-                  (mapcat (fn [prod] 
-                            [(product-row prod)]))
-                  (remove nil?)
-                  (apply dom/tbody {}))))
+                  (map product-row)
+                  (apply dom/tbody nil))))
 
-(defn- search-bar []
-  (dom/form {}
-            (dom/input {:type "text"
-                        :place-holder "Search..."}
+(defn- search-bar [owner filter-text in-stock-only?]
+  (dom/form nil
+            (dom/input #js {:type "text"
+                            :place-holder "Search..."
+                            :value filter-text}
                        (dom/p nil
                               (dom/input
-                               #js {:type "checkbox"}
+                               #js {:type "checkbox"
+                                    :value in-stock-only?
+                                    :onChange (fn [event]
+                                                (om/set-state! owner :text (.. event -target -value)))}
                                "Only show products in stock?")))))
 
-(defn- filterable-product-table [props]
-  (om/component
-   (dom/div {}
-            (product-table (:products props))
-            (search-bar))))
+(defn- filterable-product-table [props owner]
+  (reify
+    om/IInitState
+    (init-state [_]
+      {:in-stock-only? false
+       :filter-text ""}) 
+    om/IRenderState 
+    (render-state [_ {:keys [filter-text in-stock-only?]}]
+      (dom/div nil
+               (search-bar owner filter-text in-stock-only?)
+               (product-table (:products props)
+                              filter-text
+                              in-stock-only?)))))
 
 (om/root filterable-product-table {:products products}
          {:target (.getElementById js/document "app")})
