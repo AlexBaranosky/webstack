@@ -73,11 +73,22 @@
                     (select-keys [:status :body])
                     (update :body json/decode keyword)))))
 
-       (testing ~(str name " resource: delete first")
-         )
+       (testing ~(str name " resource: delete second")
+         (is (= {:status 204
+                 :body nil}
+                (-> (client/delete ~(str url "/2")
+                                   {:content-type :json
+                                    :throw-exceptions false})
+                    (select-keys [:status :body]))))
 
-       (testing ~(str name " resource: delete first")
-         ))))
+         (is (= {:status 200
+                 :body [(assoc ~create :id 1)
+                        (assoc ~create :id 3)
+                        (assoc ~create :id 4)]}
+                (-> (client/get ~url {:content-type :json
+                                      :throw-exceptions false})
+                    (select-keys [:status :body])
+                    (update :body json/decode keyword))))))))
 
 
 ;; TODO webstack/resources.clj
