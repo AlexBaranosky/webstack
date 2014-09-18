@@ -103,8 +103,8 @@
         db-update-fn-sym (symbol (str name "-db-update"))
         db-delete-fn-sym (symbol (str name "-db-delete"))
 
-        resource-post!-fn-sym (symbol (str name "-resource-post!"))
-        resource-put!-fn-sym (symbol (str name "-resource-put!"))
+        resource-post!-fn-sym   (symbol (str name "-resource-post!"))
+        resource-put!-fn-sym    (symbol (str name "-resource-put!"))
         resource-delete!-fn-sym (symbol (str name "-resource-delete!"))
         resource-exists?-fn-sym (symbol (str name "-resource-exists?"))]
     `(do
@@ -160,9 +160,9 @@
 ;;                  (name table)
 ;;                  col-spec))))
 
-(defn make-tables! []
-  (doseq [ddl (gen-ddl)]
-    (jdbc/execute! db [ddl])))
+;; (defn make-tables! []
+;;   (doseq [ddl (gen-ddl)]
+;;     (jdbc/execute! db [ddl])))
 
 (clojure.core/comment
 
