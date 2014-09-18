@@ -6,9 +6,10 @@
             [liberator.core :as lib]
             [schema.core :as s]
             [webstack.dev :refer :all]
-            [webstack.server :as server]))
+            [webstack.server :as server])
+  (:import (clojure.lang Keyword)))
 
-(defonce crud-fns (atom {}))
+;;(defonce crud-fns (atom {}))
 
 (def ^:private default-auth
   {:get    #{:admin :readonly}
@@ -50,24 +51,6 @@
     (fn [id]
       (jdbc/delete! db table-kw ["id = ?" id]))))
 
-
-(defn- crud-defn-sexps
-  [table-name
-   {:syms [schema-sym
-           validate-fn-sym
-           db-create-fn-sym
-           db-read-fn-sym
-           db-update-fn-sym
-           db-delete-fn-sym]}
-   {:keys [schema] :or {schema s/Any}}]
-  `(do
-     (def ~schema-sym       ~schema)
-     (def ~validate-fn-sym  (make:validate-fn ~schema-sym))
-     (def ~db-create-fn-sym (make:create-fn ~table-name))
-     (def ~db-read-fn-sym   (make:read-fn ~table-name))
-     (def ~db-update-fn-sym (make:update-fn ~table-name))
-     (def ~db-delete-fn-sym (make:delete-fn ~table-name))))
-
 (defn authorized? [method->role-set ctx]
   true #_(friend/authorized? (get method->role-set (-> ctx :request :request-method))
                              (friend/identity (:request ctx))))
@@ -98,20 +81,40 @@
     (some->> (db-read-fn (-> ctx :request :params :id))
              (hash-map ::value))))
 
-(defn- liberator-resource-sexp
-  [name
-   liberator-resource-name
-   {:syms [schema-sym
-           validate-fn-sym
-           db-create-fn-sym
-           db-read-fn-sym
-           db-update-fn-sym
-           db-delete-fn-sym]}]
-  (let [resource-post!-fn-sym (symbol (str name "-resource-post!"))
+;; (defn- register-ddl [name ddl]
+;;   (swap! crud-fns assoc-in [(keyword name) :ddl] ddl))
+
+;; (defn- register-fns [name crud-fn-syms]
+;;   (println "Defining resource" name)
+;;   (swap! crud-fns assoc-in [(keyword name) :fns] crud-fn-syms))
+
+(def ^:private resource-route-prefix "/resources/")
+
+(defmacro defresource [name {:keys [ddl schema]}]
+  (assert ddl)
+  (assert schema)
+  (let [route (str resource-route-prefix (str name))
+        liberator-resource-name (symbol (str "liberator-resource-" name))
+
+        schema-sym       (symbol (str name "-schema"))
+        validate-fn-sym  (symbol (str name "-validate"))
+        db-create-fn-sym (symbol (str name "-db-create"))
+        db-read-fn-sym   (symbol (str name "-db-read"))
+        db-update-fn-sym (symbol (str name "-db-update"))
+        db-delete-fn-sym (symbol (str name "-db-delete"))
+
+        resource-post!-fn-sym (symbol (str name "-resource-post!"))
         resource-put!-fn-sym (symbol (str name "-resource-put!"))
         resource-delete!-fn-sym (symbol (str name "-resource-delete!"))
         resource-exists?-fn-sym (symbol (str name "-resource-exists?"))]
     `(do
+       (def ~schema-sym       ~schema)
+       (def ~validate-fn-sym  (make:validate-fn '~schema-sym))
+       (def ~db-create-fn-sym (make:create-fn '~name))
+       (def ~db-read-fn-sym   (make:read-fn '~name))
+       (def ~db-update-fn-sym (make:update-fn '~name))
+       (def ~db-delete-fn-sym (make:delete-fn '~name))
+
        (def ~resource-post!-fn-sym   (make:resource-post! ~db-create-fn-sym))
        (def ~resource-put!-fn-sym    (make:resource-put! ~db-update-fn-sym))
        (def ~resource-delete!-fn-sym (make:resource-delete! ~db-delete-fn-sym))
@@ -127,36 +130,10 @@
           :delete! ~resource-delete!-fn-sym
           :exists? ~resource-exists?-fn-sym
           :handle-ok resource-handle-ok
-          :handle-exception resource-handle-exception}))))
-
-(defn- register-ddl [name ddl]
-  (swap! crud-fns assoc-in [(keyword name) :ddl] ddl))
-
-(defn- register-fns [name crud-fn-syms]
-  (println "Defining resource" name)
-  (swap! crud-fns assoc-in [(keyword name) :fns] crud-fn-syms))
-
-(def ^:private resource-route-prefix "/resources/")
-
-(defmacro defresource [name {:keys [ddl schema]
-                             :or {schema s/Any}}]
-  (assert ddl)
-  (let [route (str resource-route-prefix (str name))
-        liberator-resource-name (symbol (str "liberator-resource-" name))
-        crud-fn-syms {'schema-sym       (symbol (str name "-schema"))
-                      'validate-fn-sym  (symbol (str name "-validate"))
-                      'db-create-fn-sym (symbol (str name "-db-create"))
-                      'db-read-fn-sym   (symbol (str name "-db-read"))
-                      'db-update-fn-sym (symbol (str name "-db-update"))
-                      'db-delete-fn-sym (symbol (str name "-db-delete"))}]
-    (register-ddl name ddl)
-    (register-fns name crud-fn-syms)
-    `(do
-       ~(crud-defn-sexps (str name) crud-fn-syms schema)
-       ~(liberator-resource-sexp name liberator-resource-name crud-fn-syms)
+          :handle-exception resource-handle-exception})
        (server/add-resource-route '~name ~route ~liberator-resource-name))))
 
-(reset! crud-fns {})
+;; (reset! crud-fns {})
 
 (defresource comment
   {:ddl {"text" "VARCHAR(50)"}
@@ -171,17 +148,17 @@
             (s/required-key :roles)    #{Keyword}
             (s/required-key :username) String}})
 
-(defn gen-ddl []
-  (vec (for [[table {:keys [ddl]}] @crud-fns
-             :let [col-spec (->> ddl
-                                 (map (fn [[k v]]
-                                        (str k " " v)))
-                                 (str/join ", \n"))]]
-         (format "CREATE TABLE IF NOT EXISTS %s (
-id INT PRIMARY KEY NOT NULL,
-%s);"
-                 (name table)
-                 col-spec))))
+;; (defn gen-ddl []
+;;   (vec (for [[table {:keys [ddl]}] @crud-fns
+;;              :let [col-spec (->> ddl
+;;                                  (map (fn [[k v]]
+;;                                         (str k " " v)))
+;;                                  (str/join ", \n"))]]
+;;          (format "CREATE TABLE IF NOT EXISTS %s (
+;; id INT PRIMARY KEY NOT NULL,
+;; %s);"
+;;                  (name table)
+;;                  col-spec))))
 
 (defn make-tables! []
   (doseq [ddl (gen-ddl)]
@@ -191,7 +168,7 @@ id INT PRIMARY KEY NOT NULL,
 
   (make-tables!)
 
-  crud-fns
+;;  crud-fns
 
   (doseq [line (gen-ddl)]
     (println line))
