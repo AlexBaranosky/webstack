@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [comment])
   (:require [cheshire.core :as json]
             [clojure.java.jdbc :as jdbc]
-            [clojure.string :as str]
             [liberator.core :as lib]
             [schema.core :as s]
             [webstack.dev :refer :all]
@@ -28,9 +27,8 @@
     (s/validate schema value)))
 
 (defn- make:create-fn [table-name]
-  (let [table-kw (keyword table-name)]
-    (fn [id value]
-      (jdbc/insert! db table-kw (assoc value :id id)))))
+  (fn [id value]
+    (jdbc/insert! db table-name (assoc value :id id))))
 
 (defn- make:read-fn [table-name]
   (fn [id]
@@ -42,24 +40,21 @@
                                 id)]))))
 
 (defn- make:update-fn [table-name]
-  (let [table-kw (keyword table-name)]
-    (fn [id partial-value]
-      (jdbc/update! db table-kw partial-value ["id = ?" id]))))
+  (fn [id partial-value]
+    (jdbc/update! db table-name partial-value ["id = ?" id])))
 
 (defn- make:delete-fn [table-name]
-  (let [table-kw (keyword table-name)]
-    (fn [id]
-      (jdbc/delete! db table-kw ["id = ?" id]))))
+  (fn [id]
+    (jdbc/delete! db table-name ["id = ?" id])))
 
 (defn- make:read-all-fn [table-name]
   (fn []
     (jdbc/query db [(str "SELECT * FROM " table-name)])))
 
 (defn- make:create-multi-fn [table-name]
-  (let [table-kw (keyword table-name)]
-    (fn [values]
-      (doseq [v values]
-        (jdbc/insert! db table-kw v)))))
+  (fn [values]
+    (doseq [v values]
+      (jdbc/insert! db table-name v))))
 
 (defn- authorized? [method->role-set ctx]
   true #_(friend/authorized? (get method->role-set (-> ctx :request :request-method))
@@ -97,8 +92,8 @@
 
 (defn- make:resource-multi-post! [db-create-multi-fn]
   (fn [ctx]
-    (let [{:strs [values]} (-> ctx :request :body slurp (json/decode keyword))]
-      (db-create-multi-fn values))))
+    (db-create-multi-fn 
+     (-> ctx :request :body slurp (json/decode keyword) :values))))
 
 (defn- make:resource-multi-exists? [db-read-all-fn]
   (fn [ctx]
@@ -111,8 +106,6 @@
 ;; (defn- register-fns [name crud-fn-syms]
 ;;   (println "Defining resource" name)
 ;;   (swap! crud-fns assoc-in [(keyword name) :fns] crud-fn-syms))
-
-(def ^:private resource-route-prefix )
 
 (defmacro defresource [name {:keys [ddl schema]}]
   (assert ddl)
@@ -149,15 +142,21 @@
        (def ~db-delete-fn-sym (make:delete-fn '~name))
 
        (def ~db-read-all-fn-sym (make:read-all-fn '~name))
-       (def ~db-create-multi-fn-sym (make:create-multi-fn ~'name))
+       (def ~db-create-multi-fn-sym (make:create-multi-fn '~name))
 
-       (def ~resource-single-post!-fn-sym   (make:resource-single-post! ~db-create-fn-sym))
-       (def ~resource-single-put!-fn-sym    (make:resource-single-put! ~db-update-fn-sym))
-       (def ~resource-single-delete!-fn-sym (make:resource-single-delete! ~db-delete-fn-sym))
-       (def ~resource-single-exists?-fn-sym (make:resource-single-exists? ~db-read-fn-sym))
+       (def ~resource-single-post!-fn-sym   
+         (make:resource-single-post! ~db-create-fn-sym))
+       (def ~resource-single-put!-fn-sym
+         (make:resource-single-put! ~db-update-fn-sym))
+       (def ~resource-single-delete!-fn-sym
+         (make:resource-single-delete! ~db-delete-fn-sym))
+       (def ~resource-single-exists?-fn-sym
+         (make:resource-single-exists? ~db-read-fn-sym))
 
-       (def ~resource-multi-post!-fn-sym   (make:resource-multi-post! ~db-create-multi-fn-sym))
-       (def ~resource-multi-exists?-fn-sym (make:resource-multi-exists? ~db-read-all-fn-sym))
+       (def ~resource-multi-post!-fn-sym
+         (make:resource-multi-post! ~db-create-multi-fn-sym))
+       (def ~resource-multi-exists?-fn-sym
+         (make:resource-multi-exists? ~db-read-all-fn-sym))
 
        (let [shared-resource-opts# {:authorized? (fn [ctx#]
                                                   (authorized? default-auth ctx#))

@@ -55,16 +55,23 @@
        (testing ~(str name " resource: create multi")
          (is (= {:status 201
                  :body ""}
-                (select-keys
-                 (client/post ~url {:body (json/encode
-                                           {:values [(assoc ~create :id "3")
-                                                     (assoc ~create :id "4")]})
-                                    :content-type :json
-                                    :throw-exceptions false})
-                 [:status :body]))))
+                (-> (client/post ~url {:body (json/encode
+                                              {:values [(assoc ~create :id "3")
+                                                        (assoc ~create :id "4")]})
+                                       :content-type :json
+                                       :throw-exceptions false})
+                    (select-keys [:status :body])))))
 
        (testing ~(str name " resource: read all")
-         )
+         (is (= {:status 200
+                 :body [(assoc ~create :id 1)
+                        (assoc ~create :id 2)
+                        (assoc ~create :id 3)
+                        (assoc ~create :id 4)]}
+                (-> (client/get ~url {:content-type :json
+                                      :throw-exceptions false})
+                    (select-keys [:status :body])
+                    (update :body json/decode keyword)))))
 
        (testing ~(str name " resource: delete first")
          )
