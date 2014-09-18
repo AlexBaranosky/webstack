@@ -19,7 +19,7 @@
 
 (def ^:private unprotected-routes
   (h/routes
-   {:routes ["/"              #'handlers/home-page 
+   {:routes ["/"              #'handlers/home-page
              "/ping"          #'handlers/ping
              "/om"            #'handlers/om
              "/javascripts/*" :ignored]}))
@@ -43,16 +43,31 @@
 
 (defonce resource-routes (atom {}))
 
-(defn add-resource-route [name route resource-handler]
-  (swap! resource-routes 
+(defn add-resource-routes
+  [name route resource-single-handler resource-multi-handler]
+  (swap! resource-routes
          assoc
          (keyword (str name))
-         (first (h/routes {:routes [route resource-handler]}))))
+         {:single-route (first
+                         (h/routes
+                          {:routes [(str route "/:id") resource-single-handler]}))
+          :multi-route (first
+                        (h/routes
+                         {:routes [route resource-multi-handler]}))}))
+
+(defn- resource-single-routes []
+  (->> (vals @resource-routes)
+       (map :single-route)))
+
+(defn- resource-multi-routes []
+  (->> (vals @resource-routes)
+       (map :multi-route)))
 
 (defn- routes []
   (concat unprotected-routes
           protected-routes
-          (vals @resource-routes)))
+          (resource-single-routes)
+          (resource-multi-routes)))
 
 (defn- handler [req]
   (if-let [{hdlr :handler

@@ -11,29 +11,33 @@
        (jdbc/execute! resource-registrar/db [(str "DELETE FROM " t#)]))
      ~@body))
 
-(defmacro def-resource-test
-  [name {:keys [url create]}]
+(defmacro def-resource-test [name {:keys [url create]}]
   `(deftest ~(with-meta
                (symbol (str "test-" name))
                {:integration true})
      (with-clean-db [~(str name)]
        (testing ~(str "Create " name)
-         (is (= 201 (:status
-                     (client/post ~url
-                                  {:body (json/encode {:id "2"
-                                                       :value ~create})
-                                   :content-type :json})))))
+         (is (= {:status 201
+                 :body ""}
+                (select-keys
+                 (client/post ~(str url "/2")
+                              {:body (json/encode {:value ~create})
+                               :content-type :json
+                               :throw-exceptions false})
+                 [:status :body]))))
 
        (testing ~(str "Read " name)
-         (is (= (assoc ~create :id 2)
-                (-> (client/get (str ~url "/?id=2"))
-                    :body
-                    (json/decode keyword))))))))
+         (is (= {:body (assoc ~create :id 2)
+                 :status 200}
+                (-> (client/get ~(str url "/2")
+                                {:throw-exceptions false})
+                    (update :body json/decode keyword)
+                    (select-keys [:body :status]))))))))
 
 
 (def-resource-test comment
   {:url "http://localhost:9444/resources/comment"
-   :create {:text "My comment"}}) 
+   :create {:text "My comment"}})
 
 (comment
   (client/get "http://localhost:9444/resources/comment?id=1")
