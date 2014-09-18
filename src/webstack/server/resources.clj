@@ -71,11 +71,6 @@
          (lib/defresource ~liberator-single-resource-name
            shared-resource-opts#
            :allowed-methods [:get :post :put :delete]
-           ;; :allowed? (fn [ctx#]
-           ;;             (look (::value ctx#))
-           ;;             (let [v# (::value ctx#)
-           ;;                   errs# (s/check ~schema-sym v#)]
-           ;;               [(not errs#) v#]))
            :post! ~resource-single-post!-fn-sym
            :put! ~resource-single-put!-fn-sym
            :delete! ~resource-single-delete!-fn-sym
@@ -114,6 +109,8 @@
   `(do 
      ~@(for [config resource-configs]
          `(defresource ~config))))
+
+;; (gen-resources)
 
 ;; (defn- register-ddl [name ddl]
 ;;   (swap! crud-fns assoc-in [(keyword name) :ddl] ddl))
