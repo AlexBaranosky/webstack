@@ -52,7 +52,7 @@
       (jdbc/delete! db table-kw ["id = ?" id]))))
 
 (defn- make:read-all-fn [table-name]
-  (fn [id]
+  (fn []
     (jdbc/query db [(str "SELECT * FROM " table-name)])))
 
 (defn- make:create-multi-fn [table-name]
@@ -97,7 +97,7 @@
 
 (defn- make:resource-multi-post! [db-create-multi-fn]
   (fn [ctx]
-    (let [{:strs [values]} (-> ctx :request :body slurp json/decode)]
+    (let [{:strs [values]} (-> ctx :request :body slurp (json/decode keyword))]
       (db-create-multi-fn values))))
 
 (defn- make:resource-multi-exists? [db-read-all-fn]
