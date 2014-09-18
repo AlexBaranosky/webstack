@@ -1,4 +1,4 @@
-(ns webstack.resource-registrar
+(ns webstack.resources
   (:refer-clojure :exclude [comment])
   (:require [cheshire.core :as json]
             [clojure.java.jdbc :as jdbc]
@@ -110,8 +110,7 @@
 (defmacro defresource [name {:keys [ddl schema]}]
   (assert ddl)
   (assert schema)
-  (let [route (str resource-route-prefix (str name))
-        liberator-single-resource-name
+  (let [liberator-single-resource-name
         (symbol (str "liberator-single-resource-" name))
         liberator-multi-resource-name
         (symbol (str "liberator-multi-resource-" name))
@@ -223,5 +222,5 @@
   (doseq [line (gen-ddl)]
     (println line))
 
-  (sort (keys (ns-publics 'webstack.resource-registrar)))
+  (sort (keys (ns-publics 'webstack.resources)))
   )

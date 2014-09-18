@@ -3,7 +3,7 @@
             [clj-http.client :as client]
             [clojure.java.jdbc :as jdbc]
             [clojure.test :refer :all]
-            [webstack.resource-registrar :as resource-registrar]))
+            [webstack.resources :as resource-registrar]))
 
 (defmacro with-clean-db [tables & body]
   `(do
@@ -101,7 +101,7 @@
 ;; TODO: multi routes get ranges for front-end pagination ??
 ;; TODO: has-many + belongs-to
 
-;; TODO:  :webstack.resource-registrar/values
+;; TODO:  :webstack.resources/values
 ;; ... on post??? checking :exists? => ({:text "My comment", :id 1} {:text "My comment", :id 2})
 
 (def-resource-test comment

@@ -5,7 +5,7 @@
             [webstack.dev :refer :all])
   (:gen-class))
 
-(require 'webstack.resource-registrar)
+(require 'webstack.resources)
 
 (defn -main [& args]
   (println (str "Starting nREPL server on port " 9445))
