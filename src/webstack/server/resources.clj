@@ -12,7 +12,9 @@
 
 ;;(defonce crud-fns (atom {}))
 
-(defmacro defresource [name {:keys [ddl schema]}]
+(defmacro defresource [{:keys [name ddl schema]
+                        :as _resource-config}]
+  (assert name)
   (assert ddl)
   (assert schema)
   (let [liberator-single-resource-name
@@ -95,18 +97,24 @@
 
 ;; (reset! crud-fns {})
 
-(defresource comment
-  {:ddl {"text" "VARCHAR(50)"}
-   :schema {:text String}})
+(def resource-configs
+  [{:name "comment"
+    :ddl {"text" "VARCHAR(50)"}
+    :schema {:text String}}
+   
+   {:name "user"
+    :ddl {"email" "VARCHAR(50)"
+          "password" "VARCHAR(50)"
+          "username" "VARCHAR(50)"}
+    :schema {(s/required-key :email)    String
+             (s/required-key :password) String
+             (s/required-key :roles)    #{Keyword}
+             (s/required-key :username) String}}])
 
-(defresource user
-  {:ddl {"email" "VARCHAR(50)"
-         "password" "VARCHAR(50)"
-         "username" "VARCHAR(50)"}
-   :schema {(s/required-key :email)    String
-            (s/required-key :password) String
-            (s/required-key :roles)    #{Keyword}
-            (s/required-key :username) String}})
+(defmacro gen-resources []
+  `(do 
+     ~@(for [config resource-configs]
+         `(defresource ~config))))
 
 ;; (defn- register-ddl [name ddl]
 ;;   (swap! crud-fns assoc-in [(keyword name) :ddl] ddl))

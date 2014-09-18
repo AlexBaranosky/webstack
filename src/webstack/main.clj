@@ -2,10 +2,11 @@
   (:require [cemerick.piggieback :as pb]
             [clojure.tools.nrepl.server :as nrepl] 
             [webstack.server :as server]
+            [webstack.server.resources :as resources]
             [webstack.dev :refer :all])
   (:gen-class))
 
-(require 'webstack.server.resources) ;; defines resources
+(resources/gen-resources)
 
 (defn -main [& args]
   (println (str "Starting nREPL server on port " 9445))
