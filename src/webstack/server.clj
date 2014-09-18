@@ -17,7 +17,8 @@
             [webstack.dev :refer :all]
             ;; [webstack.resources.user :as user]
             [webstack.server.handlers :as handlers]
-            [webstack.server.helpers :as h]))
+            [webstack.server.helpers :as h]
+            [webstack.server.resources.routes :as resources-routes]))
 
 (def ^:private unprotected-routes
   (h/routes
@@ -43,33 +44,10 @@
                    ;;(friend/requires-scheme :https)
                    ))}))
 
-(defonce resource-routes (atom {}))
-
-(defn add-resource-routes
-  [name route resource-single-handler resource-multi-handler]
-  (swap! resource-routes
-         assoc
-         (keyword (str name))
-         {:single-route (first
-                         (h/routes
-                          {:routes [(str route "/:id") resource-single-handler]}))
-          :multi-route (first
-                        (h/routes
-                         {:routes [route resource-multi-handler]}))}))
-
-(defn- resource-single-routes []
-  (->> (vals @resource-routes)
-       (map :single-route)))
-
-(defn- resource-multi-routes []
-  (->> (vals @resource-routes)
-       (map :multi-route)))
-
 (defn- routes []
   (concat unprotected-routes
           protected-routes
-          (resource-single-routes)
-          (resource-multi-routes)))
+          (resources-routes/all)))
 
 (defn- handler [req]
   (if-let [{hdlr :handler

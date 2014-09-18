@@ -3,12 +3,12 @@
             [clj-http.client :as client]
             [clojure.java.jdbc :as jdbc]
             [clojure.test :refer :all]
-            [webstack.resources :as resource-registrar]))
+            [webstack.server.resources.db :as resources-db]))
 
 (defmacro with-clean-db [tables & body]
   `(do
      (doseq [t# ~tables]
-       (jdbc/execute! resource-registrar/db [(str "DELETE FROM " t#)]))
+       (jdbc/execute! resources-db/db [(str "DELETE FROM " t#)]))
      ~@body))
 
 (defmacro def-resource-test [name {:keys [url create invalid]}]
@@ -16,6 +16,16 @@
   `(deftest ~(with-meta (symbol (str "test-" name))
                {:integration true})
      (with-clean-db [~(str name)]
+       ;; (testing ~(str name " resource: validation")
+       ;;   (is (= {:status 201
+       ;;           :body "..."}
+       ;;          (select-keys
+       ;;           (client/post ~(str url "/1")
+       ;;                        {:body (json/encode {:value ~invalid})
+       ;;                         :content-type :json
+       ;;                         :throw-exceptions false})
+       ;;           [:status :body]))))
+
        (testing ~(str name " resource: create first")
          (is (= {:status 201
                  :body ""}
@@ -90,29 +100,15 @@
                     (select-keys [:status :body])
                     (update :body json/decode keyword))))))))
 
-
-;; TODO webstack/resources.clj
-;; TODO webstack/resources/liberator.clj ;; or handler?
-;; TODO webstack/resources/db.clj
-;; TODO webstack/resources/routes.clj ;; stuff from server.clj goes here
-
 ;; TODO: validate inputted values
 ;; TODO: next, add more tests of all other REST operations
 ;; TODO: multi routes get ranges for front-end pagination ??
 ;; TODO: has-many + belongs-to
 
-;; TODO:  :webstack.resources/values
+;; TODO:  :webstack.server.resources/values
 ;; ... on post??? checking :exists? => ({:text "My comment", :id 1} {:text "My comment", :id 2})
 
 (def-resource-test comment
-  {:url "http://localhost:9444/resources/comment"
+  {:url "http://localhost:9444/resources/comments"
    :create {:text "My comment"}
    :invalid {:comment "bad comment"}})
-
-(comment
-  (client/get "http://localhost:9444/resources/comment?id=1")
-
-  (client/post "http://localhost:9444/resources/comment"
-               {:body (json/encode {:id "1"
-                                    :value {:text "asdsadsad"}})
-                :content-type :json}))
