@@ -2,6 +2,8 @@
   (:require [cemerick.friend :as friend]
             [cemerick.friend.credentials :as creds]
             [cemerick.friend.workflows :as workflows]
+            [cheshire.core :as json]
+            [kits.homeless :as hl]
             [ring.adapter.jetty :as ring]
             [ring.middleware.keyword-params :as keyword-params]
             [ring.middleware.nested-params :as nested-params]
@@ -75,6 +77,16 @@
     (hdlr (update-in req [:params] conj params))
     (response/not-found "Not found")))
 
+(defn- wrap-exception-handling [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Throwable e
+        (tap (hl/exception->map e))
+        {:body (json/encode (hl/exception->map e))
+         :status 500
+         :content-type "application-json"}))))
+
 (def ^:private app (-> handler
                        keyword-params/wrap-keyword-params
                        params/wrap-params
@@ -83,7 +95,7 @@
                        flash/wrap-flash
                        session/wrap-session
                        (resource/wrap-resource "public")
-                       stacktrace/wrap-stacktrace))
+                       wrap-exception-handling))
 
 (defn start [port]
   (ring/run-jetty #'app {:port port
