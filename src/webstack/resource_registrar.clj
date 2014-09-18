@@ -22,38 +22,51 @@
          :subprotocol "mysql",
          :user "root"})
 
+(defn- make:validate-fn [schema]
+  (fn [value]
+    (s/validate schema value)))
+
+(defn make:create-fn [table-name]
+  (let [table-kw (keyword table-name)]
+    (fn [id value]
+      (jdbc/insert! db table-kw (assoc value :id id)))))
+
+(defn make:read-fn [table-name]
+  (fn [id]
+    (first (jdbc/query db
+                       [(format (str "SELECT *
+                                      FROM " table-name
+                                      " WHERE id=%s
+                                      LIMIT 1")
+                                id)]))))
+
+(defn make:update-fn [table-name]
+  (let [table-kw (keyword table-name)]
+    (fn [id partial-value]
+      (jdbc/update! db table-kw partial-value ["id = ?" id]))))
+
+(defn make:delete-fn [table-name]
+  (let [table-kw (keyword table-name)]
+    (fn [id]
+      (jdbc/delete! db table-kw ["id = ?" id]))))
+
+
 (defn- crud-defn-sexps
   [table-name
-   {:syms [schema-fn-sym
+   {:syms [schema-sym
            validate-fn-sym
            db-create-fn-sym
            db-read-fn-sym
            db-update-fn-sym
            db-delete-fn-sym]}
    {:keys [schema] :or {schema s/Any}}]
-  (let [table-kw (keyword table-name)]
-    `(let [schema# ~schema]
-       (def ~schema-fn-sym schema#)
-
-       (defn ~validate-fn-sym [value#]
-         (s/validate ~schema-fn-sym value#))
-
-       (defn ~db-create-fn-sym [id# value#]
-         (jdbc/insert! db ~table-kw (assoc value# :id id#)))
-
-       (defn ~db-read-fn-sym [id#]
-         (first (jdbc/query db
-                            [(format ~(str "SELECT *
-                                            FROM " table-name
-                                            " WHERE id=%s
-                                            LIMIT 1")
-                                     id#)])))
-
-       (defn ~db-update-fn-sym [id# partial-value#]
-         (jdbc/update! db ~table-kw partial-value# ["id = ?" id#]))
-
-       (defn ~db-delete-fn-sym [id#]
-         (jdbc/delete! db ~table-kw ["id = ?" id#])))))
+  `(do
+     (def ~schema-sym       ~schema)
+     (def ~validate-fn-sym  (make:validate-fn ~schema-sym))
+     (def ~db-create-fn-sym (make:create-fn ~table-name))
+     (def ~db-read-fn-sym   (make:read-fn ~table-name))
+     (def ~db-update-fn-sym (make:update-fn ~table-name))
+     (def ~db-delete-fn-sym (make:delete-fn ~table-name))))
 
 (defn authorized? [method->role-set ctx]
   true #_(friend/authorized? (get method->role-set (-> ctx :request :request-method))
@@ -72,7 +85,7 @@
 
 (defn- make:resource-put! [db-update-fn]
   (fn [ctx]
-    (let [{:strs [id partial-value]} (-> ctx# :request :body slurp json/decode)]
+    (let [{:strs [id partial-value]} (-> ctx :request :body slurp json/decode)]
       (db-update-fn id partial-value))))
 
 (defn- make:resource-delete! [db-delete-fn]
@@ -83,12 +96,12 @@
 (defn- make:resource-exists? [db-read-fn]
   (fn [ctx]
     (some->> (db-read-fn (-> ctx :request :params :id))
-             (hash-map ::value)))) 
+             (hash-map ::value))))
 
 (defn- liberator-resource-sexp
   [name
    liberator-resource-name
-   {:syms [schema-fn-sym
+   {:syms [schema-sym
            validate-fn-sym
            db-create-fn-sym
            db-read-fn-sym
@@ -130,7 +143,7 @@
   (assert ddl)
   (let [route (str resource-route-prefix (str name))
         liberator-resource-name (symbol (str "liberator-resource-" name))
-        crud-fn-syms {'schema-fn-sym    (symbol (str name "-schema"))
+        crud-fn-syms {'schema-sym       (symbol (str name "-schema"))
                       'validate-fn-sym  (symbol (str name "-validate"))
                       'db-create-fn-sym (symbol (str name "-db-create"))
                       'db-read-fn-sym   (symbol (str name "-db-read"))
@@ -139,7 +152,7 @@
     (register-ddl name ddl)
     (register-fns name crud-fn-syms)
     `(do
-       ~(crud-defn-sexps name crud-fn-syms schema)
+       ~(crud-defn-sexps (str name) crud-fn-syms schema)
        ~(liberator-resource-sexp name liberator-resource-name crud-fn-syms)
        (server/add-resource-route '~name ~route ~liberator-resource-name))))
 
