@@ -43,9 +43,9 @@
 
        (defn ~db-read-fn-sym [id#]
          (first (jdbc/query db
-                            [(format ~(str "SELECT * 
-                                            FROM " table-name 
-                                          " WHERE id=%s
+                            [(format ~(str "SELECT *
+                                            FROM " table-name
+                                            " WHERE id=%s
                                             LIMIT 1")
                                      id#)])))
 
@@ -65,6 +65,26 @@
 (defn resource-handle-exception [ctx]
   (throw (:exception ctx)))
 
+(defn- make:resource-post! [db-create-fn]
+  (fn [ctx]
+    (let [{:strs [id value]} (-> ctx :request :body slurp json/decode)]
+      (db-create-fn id value))))
+
+(defn- make:resource-put! [db-update-fn]
+  (fn [ctx]
+    (let [{:strs [id partial-value]} (-> ctx# :request :body slurp json/decode)]
+      (db-update-fn id partial-value))))
+
+(defn- make:resource-delete! [db-delete-fn]
+  (fn [ctx]
+    (let [{:strs [id]} (-> ctx :request :body slurp json/decode)]
+      (db-delete-fn id))))
+
+(defn- make:resource-exists? [db-read-fn]
+  (fn [ctx]
+    (some->> (db-read-fn (-> ctx :request :params :id))
+             (hash-map ::value)))) 
+
 (defn- liberator-resource-sexp
   [name
    liberator-resource-name
@@ -79,23 +99,10 @@
         resource-delete!-fn-sym (symbol (str name "-resource-delete!"))
         resource-exists?-fn-sym (symbol (str name "-resource-exists?"))]
     `(do
-       (defn ~resource-post!-fn-sym [ctx#]
-         (look (-> ctx# :request))
-         (let [{:strs [~'id ~'value]} (-> ctx# :request :body slurp json/decode)]
-           (~db-create-fn-sym ~'id ~'value)))
-
-       (defn ~resource-put!-fn-sym [ctx#]
-         (let [{:strs [~'id ~'partial-value]} 
-               (-> ctx# :request :body slurp json/decode)]
-           (~db-update-fn-sym ~'id ~'partial-value)))
-
-       (defn ~resource-delete!-fn-sym [ctx#]
-         (let [{:strs [~'id]} (-> ctx# :request :body slurp json/decode)]
-           (~db-delete-fn-sym ~'id)))
-
-       (defn ~resource-exists?-fn-sym [ctx#]
-         (some->> (~db-read-fn-sym (-> ctx# :request :params :id))
-                  (hash-map ::value)))
+       (def ~resource-post!-fn-sym   (make:resource-post! ~db-create-fn-sym))
+       (def ~resource-put!-fn-sym    (make:resource-put! ~db-update-fn-sym))
+       (def ~resource-delete!-fn-sym (make:resource-delete! ~db-delete-fn-sym))
+       (def ~resource-exists?-fn-sym (make:resource-exists? ~db-read-fn-sym))
 
        (lib/defresource ~liberator-resource-name
          {:allowed-methods [:get :post :put :delete]
