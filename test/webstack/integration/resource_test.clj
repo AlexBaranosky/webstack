@@ -1,4 +1,4 @@
-(ns webstack.crud-test
+(ns webstack.integration.resource-test
   (:require [cheshire.core :as json]
             [clj-http.client :as client]
             [clojure.java.jdbc :as jdbc]
@@ -11,9 +11,11 @@
        (jdbc/execute! resource-registrar/db [(str "DELETE FROM " t#)]))
      ~@body))
 
-(defmacro def-crud-resource-test
+(defmacro def-resource-test
   [name {:keys [url create]}]
-  `(deftest ~(symbol (str "test-" name))
+  `(deftest ~(with-meta
+               (symbol (str "test-" name))
+               {:integration true})
      (with-clean-db [~(str name)]
        (testing ~(str "Create " name)
          (is (= 201 (:status
@@ -29,7 +31,7 @@
                     (json/decode keyword))))))))
 
 
-(def-crud-resource-test comment
+(def-resource-test comment
   {:url "http://localhost:9444/resources/comment"
    :create {:text "My comment"}}) 
 
