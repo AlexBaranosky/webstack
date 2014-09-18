@@ -11,8 +11,8 @@
        (jdbc/execute! resources-db/db [(str "DELETE FROM " t#)]))
      ~@body))
 
-(defmacro def-resource-test [name {:keys [url create invalid]}]
-  (assert (and url create invalid))
+(defmacro def-resource-test [name {:keys [url create-value invalid-value]}]
+  (assert (and url create-value invalid-value))
   `(deftest ~(with-meta (symbol (str "test-" name))
                {:integration true})
      (with-clean-db [~(str name)]
@@ -21,7 +21,7 @@
        ;;           :body "..."}
        ;;          (select-keys
        ;;           (client/post ~(str url "/1")
-       ;;                        {:body (json/encode {:value ~invalid})
+       ;;                        {:body (json/encode {:value ~invalid-value})
        ;;                         :content-type :json
        ;;                         :throw-exceptions false})
        ;;           [:status :body]))))
@@ -31,7 +31,7 @@
                  :body ""}
                 (select-keys
                  (client/post ~(str url "/1")
-                              {:body (json/encode {:value ~create})
+                              {:body (json/encode {:value ~create-value})
                                :content-type :json
                                :throw-exceptions false})
                  [:status :body]))))
@@ -41,13 +41,13 @@
                  :body ""}
                 (select-keys
                  (client/post ~(str url "/2")
-                              {:body (json/encode {:value ~create})
+                              {:body (json/encode {:value ~create-value})
                                :content-type :json
                                :throw-exceptions false})
                  [:status :body]))))
 
        (testing ~(str name " resource: read first")
-         (is (= {:body (assoc ~create :id 1)
+         (is (= {:body (assoc ~create-value :id 1)
                  :status 200}
                 (-> (client/get ~(str url "/1")
                                 {:throw-exceptions false})
@@ -55,7 +55,7 @@
                     (select-keys [:body :status])))))
 
        (testing ~(str name " resource: read second")
-         (is (= {:body (assoc ~create :id 2)
+         (is (= {:body (assoc ~create-value :id 2)
                  :status 200}
                 (-> (client/get ~(str url "/2")
                                 {:throw-exceptions false})
@@ -66,18 +66,18 @@
          (is (= {:status 201
                  :body ""}
                 (-> (client/post ~url {:body (json/encode
-                                              {:values [(assoc ~create :id "3")
-                                                        (assoc ~create :id "4")]})
+                                              {:values [(assoc ~create-value :id "3")
+                                                        (assoc ~create-value :id "4")]})
                                        :content-type :json
                                        :throw-exceptions false})
                     (select-keys [:status :body])))))
 
        (testing ~(str name " resource: read all")
          (is (= {:status 200
-                 :body [(assoc ~create :id 1)
-                        (assoc ~create :id 2)
-                        (assoc ~create :id 3)
-                        (assoc ~create :id 4)]}
+                 :body [(assoc ~create-value :id 1)
+                        (assoc ~create-value :id 2)
+                        (assoc ~create-value :id 3)
+                        (assoc ~create-value :id 4)]}
                 (-> (client/get ~url {:content-type :json
                                       :throw-exceptions false})
                     (select-keys [:status :body])
@@ -92,9 +92,9 @@
                     (select-keys [:status :body]))))
 
          (is (= {:status 200
-                 :body [(assoc ~create :id 1)
-                        (assoc ~create :id 3)
-                        (assoc ~create :id 4)]}
+                 :body [(assoc ~create-value :id 1)
+                        (assoc ~create-value :id 3)
+                        (assoc ~create-value :id 4)]}
                 (-> (client/get ~url {:content-type :json
                                       :throw-exceptions false})
                     (select-keys [:status :body])
@@ -110,5 +110,5 @@
 
 (def-resource-test comment
   {:url "http://localhost:9444/resources/comments"
-   :create {:text "My comment"}
-   :invalid {:comment "bad comment"}})
+   :create-value {:text "My comment"}
+   :invalid-value {:comment "bad comment"}})

@@ -1,8 +1,6 @@
 (ns webstack.server.resources
   (:refer-clojure :exclude [comment])
-  (:require [cheshire.core :as json]
-            [clojure.java.jdbc :as jdbc]
-            [liberator.core :as lib]
+  (:require [liberator.core :as lib] 
             [schema.core :as s]
             [webstack.dev :refer :all]
             [webstack.server.resources.db :as db]
@@ -12,33 +10,34 @@
 
 ;;(defonce crud-fns (atom {}))
 
+(defn- sym* [& pieces]
+  (symbol (apply str pieces)))
+
 (defmacro defresource [{:keys [name ddl schema]
                         :as _resource-config}]
   (assert name)
   (assert ddl)
   (assert schema)
-  (let [liberator-single-resource-name
-        (symbol (str "liberator-single-resource-" name))
-        liberator-multi-resource-name
-        (symbol (str "liberator-multi-resource-" name))
+  (let [liberator-single-resource-name (sym* "liberator-single-resource-" name)
+        liberator-multi-resource-name  (sym* "liberator-multi-resource-" name)
 
-        schema-sym       (symbol (str name "-schema"))
-        validate-fn-sym  (symbol (str name "-validate"))
-        db-create-fn-sym (symbol (str name "-db-create"))
-        db-read-fn-sym   (symbol (str name "-db-read"))
-        db-update-fn-sym (symbol (str name "-db-update"))
-        db-delete-fn-sym (symbol (str name "-db-delete"))
+        schema-sym       (sym* name "-schema")
+        validate-fn-sym  (sym* name "-validate")
+        db-create-fn-sym (sym* name "-db-create")
+        db-read-fn-sym   (sym* name "-db-read")
+        db-update-fn-sym (sym* name "-db-update")
+        db-delete-fn-sym (sym* name "-db-delete")
 
-        db-read-all-fn-sym (symbol (str name "-db-read-all"))
-        db-create-multi-fn-sym (symbol (str name "-db-create-multi"))
+        db-read-all-fn-sym     (sym* name "-db-read-all")
+        db-create-multi-fn-sym (sym* name "-db-create-multi")
 
-        resource-single-post!-fn-sym   (symbol (str name "-resource-single-post!"))
-        resource-single-put!-fn-sym    (symbol (str name "-resource-single-put!"))
-        resource-single-delete!-fn-sym (symbol (str name "-resource-single-delete!"))
-        resource-single-exists?-fn-sym (symbol (str name "-resource-single-exists?"))
+        resource-single-post!-fn-sym   (sym* name "-resource-single-post!")
+        resource-single-put!-fn-sym    (sym* name "-resource-single-put!")
+        resource-single-delete!-fn-sym (sym* name "-resource-single-delete!")
+        resource-single-exists?-fn-sym (sym* name "-resource-single-exists?")
 
-        resource-multi-post!-fn-sym   (symbol (str name "-resource-multi-post!"))
-        resource-multi-exists?-fn-sym (symbol (str name "-resource-multi-exists?"))]
+        resource-multi-post!-fn-sym   (sym* name "-resource-multi-post!")
+        resource-multi-exists?-fn-sym (sym* name "-resource-multi-exists?")]
     `(do
        (def ~schema-sym       ~schema)
        (def ~validate-fn-sym  (liberator/make:validate-fn '~schema-sym))
