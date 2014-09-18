@@ -112,3 +112,11 @@
   {:url "http://localhost:9444/resources/comments"
    :create-value {:text "My comment"}
    :invalid-value {:comment "bad comment"}})
+
+(def-resource-test user
+  {:url "http://localhost:9444/resources/users"
+   :create-value {:email "bob@gmail.com"
+                  :password "pass"
+                  ;;:roles #{Keyword}
+                  :username "bobby999"}
+   :invalid-value {:comment "bad comment"}})
