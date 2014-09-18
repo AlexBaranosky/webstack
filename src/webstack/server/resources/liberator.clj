@@ -52,7 +52,7 @@
 (defn make:resource-multi-post! [db-create-multi-fn]
   (fn [ctx]
     (db-create-multi-fn 
-     (-> ctx :request :body slurp (json/decode keyword) :values))))
+     (-> ctx :request :body slurp json/decode (get "values")))))
 
 (defn make:resource-multi-exists? [db-read-all-fn]
   (fn [ctx]

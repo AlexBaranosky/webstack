@@ -3,11 +3,14 @@
             [clj-http.client :as client]
             [clojure.java.jdbc :as jdbc]
             [clojure.test :refer :all]
+            [webstack.dev :refer :all]
+            [webstack.server.resources :as resources]
             [webstack.server.resources.db :as resources-db]))
 
-(defmacro with-clean-db [tables & body]
+(defmacro with-clean-db [[ resource] & body]
   `(do
-     (doseq [t# ~tables]
+     (doseq [t# [~resource (resources/has-many ~resource)]
+             :when t#]
        (jdbc/execute! resources-db/db [(str "DELETE FROM " t#)]))
      ~@body))
 
@@ -100,10 +103,13 @@
                     (select-keys [:status :body])
                     (update :body json/decode keyword))))))))
 
+;; deleting resource w/ children: should we do cascading delete?
+
 ;; TODO: validate inputted values
 ;; TODO: next, add more tests of all other REST operations
 ;; TODO: multi routes get ranges for front-end pagination ??
 ;; TODO: has-many + belongs-to
+;; TODO: add foreign key constraints to DDL
 
 ;; TODO:  :webstack.server.resources/values
 ;; ... on post??? checking :exists? => ({:text "My comment", :id 1} {:text "My comment", :id 2})
@@ -117,6 +123,6 @@
   {:url "http://localhost:9444/resources/users"
    :create-value {:email "bob@gmail.com"
                   :password "pass"
-                  ;;:roles #{Keyword}
+                  :roles [{:name "admin"}]
                   :username "bobby999"}
    :invalid-value {:comment "bad comment"}})

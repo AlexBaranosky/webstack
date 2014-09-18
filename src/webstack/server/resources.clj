@@ -1,23 +1,35 @@
 (ns webstack.server.resources
   (:refer-clojure :exclude [comment])
-  (:require [liberator.core :as lib] 
+  (:require [clojure.java.jdbc :as jdbc]
+            [clojure.string :as str]
+            [liberator.core :as lib]
             [schema.core :as s]
             [webstack.dev :refer :all]
             [webstack.server.resources.db :as db]
             [webstack.server.resources.liberator :as liberator]
-            [webstack.server.resources.routes :as resources-routes])
-  (:import (clojure.lang Keyword)))
+            [webstack.server.resources.routes :as resources-routes]))
 
-;;(defonce crud-fns (atom {}))
+(defonce registry (atom {}))
 
 (defn- sym* [& pieces]
   (symbol (apply str pieces)))
 
-(defmacro defresource [{:keys [name ddl schema]
-                        :as _resource-config}]
-  (assert name)
-  (assert ddl)
+(defn- register [resource]
+  (swap! registry assoc (:name resource) resource))
+
+(defn has-many [resource]
+  (get-in (look @registry) [resource :has-many]))
+
+(defmacro defresource [{:keys [name ddl schema belongs-to has-many]
+                        :as resource}]
+  (when belongs-to
+    (assert (string? belongs-to)))
+  (when has-many
+    (assert (string? has-many)))
+  (assert (string? name))
+  (assert (map? ddl))
   (assert schema)
+  (register resource)
   (let [liberator-single-resource-name (sym* "liberator-single-resource-" name)
         liberator-multi-resource-name  (sym* "liberator-multi-resource-" name)
 
@@ -41,13 +53,13 @@
     `(do
        (def ~schema-sym       ~schema)
        (def ~validate-fn-sym  (liberator/make:validate-fn '~schema-sym))
-       (def ~db-create-fn-sym (db/make:create-fn '~name))
-       (def ~db-read-fn-sym   (db/make:read-fn '~name))
-       (def ~db-update-fn-sym (db/make:update-fn '~name))
-       (def ~db-delete-fn-sym (db/make:delete-fn '~name))
+       (def ~db-create-fn-sym (db/make:create-fn registry ~name))
+       (def ~db-read-fn-sym   (db/make:read-fn registry ~name))
+       (def ~db-update-fn-sym (db/make:update-fn registry ~name))
+       (def ~db-delete-fn-sym (db/make:delete-fn registry ~name))
 
-       (def ~db-read-all-fn-sym (db/make:read-all-fn '~name))
-       (def ~db-create-multi-fn-sym (db/make:create-multi-fn '~name))
+       (def ~db-read-all-fn-sym     (db/make:read-all-fn registry ~name))
+       (def ~db-create-multi-fn-sym  (db/make:create-multi-fn registry ~name))
 
        (def ~resource-single-post!-fn-sym
          (liberator/make:resource-single-post! ~db-create-fn-sym))
@@ -89,57 +101,60 @@
                              ~liberator-single-resource-name
                              ~liberator-multi-resource-name))))
 
-;; (reset! crud-fns {})
-
 (def resource-configs
   [{:name "comment"
     :ddl {"text" "VARCHAR(50)"}
-    :schema {:text String}}
-   
+    :schema {(s/required-key "text") String}}
+
    {:name "user"
+    :has-many "role"
     :ddl {"email" "VARCHAR(50)"
           "password" "VARCHAR(50)"
           "username" "VARCHAR(50)"}
-    :schema {(s/required-key :email)    String
-             (s/required-key :password) String
-             (s/required-key :roles)    #{Keyword}
-             (s/required-key :username) String}}])
+    :schema {(s/required-key "email")    String
+             (s/required-key "password") String
+             (s/required-key "roles")    [(s/enum "admin")]
+             (s/required-key "username") String}}
+
+   {:name "role"
+    :belongs-to "user"
+    :ddl {"name" "VARCHAR(50)"
+          "user_id" "INT NOT NULL"}
+    :schema {(s/required-key "name") String}}])
 
 (defmacro gen-resources []
-  `(do 
+  `(do
      ~@(for [config resource-configs]
          `(defresource ~config))))
 
-;; (gen-resources)
+;; registry
+;; (reset! registry {})
+(gen-resources)
 
-;; (defn- register-ddl [name ddl]
-;;   (swap! crud-fns assoc-in [(keyword name) :ddl] ddl))
+(defn gen-ddl []
+  (vec (for [[table resource] @registry
+             :let [col-spec (->> resource
+                                 :ddl
+                                 (map (fn [[k v]]
+                                        (str k " " v)))
+                                 (str/join ", \n"))]]
+         (format "CREATE TABLE IF NOT EXISTS %s (
+id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+%s);"
+                 table
+                 col-spec))))
 
-;; (defn- register-fns [name crud-fn-syms]
-;;   (println "Defining resource" name)
-;;   (swap! crud-fns assoc-in [(keyword name) :fns] crud-fn-syms))
-
-;; (defn gen-ddl []
-;;   (vec (for [[table {:keys [ddl]}] @crud-fns
-;;              :let [col-spec (->> ddl
-;;                                  (map (fn [[k v]]
-;;                                         (str k " " v)))
-;;                                  (str/join ", \n"))]]
-;;          (format "CREATE TABLE IF NOT EXISTS %s (
-;; id INT PRIMARY KEY NOT NULL,
-;; %s);"
-;;                  (name table)
-;;                  col-spec))))
-
-;; (defn make-tables! []
-;;   (doseq [ddl (gen-ddl)]
-;;     (jdbc/execute! db [ddl])))
+(defn make-tables! []
+  (doseq [ddl (gen-ddl)]
+    (jdbc/execute! db/db [ddl])))
 
 (clojure.core/comment
 
-  (make-tables!)
+  (jdbc/execute! db/db ["DROP TABLE comment"])
+  (jdbc/execute! db/db ["DROP TABLE user"])
+  (jdbc/execute! db/db ["DROP TABLE role"]) 
 
-  ;;  crud-fns
+  (make-tables!)
 
   (doseq [line (gen-ddl)]
     (println line))
