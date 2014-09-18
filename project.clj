@@ -30,7 +30,6 @@
                                    :optimizations :none
                                    :preamble ["react.js"]
                                    :pretty-print true
-                                   ;;:source-map true
-                                   }}]}
+                                   :source-map true}}]}
   :plugins [[lein-cljsbuild "1.0.3"]]
   :main webstack.main)
