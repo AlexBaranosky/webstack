@@ -158,7 +158,6 @@
                      (select-keys [:status :body])
                      (update :body json/decode keyword)))))))))
 
-;; TODO: make resource fns always be in webstack.server.resources
 ;; TODO: validate inputted values
 ;; TODO: test :exists? functionality, and make it only occur on GETs
 

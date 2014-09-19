@@ -1,4 +1,8 @@
-(ns webstack.server.resources
+(ns ^{:doc "Resources setup the server REST routes and DB access.
+
+            Deletes cascade: deleting all children.
+            Updates only can take top-level resources, no children."}
+  webstack.server.resources
   (:refer-clojure :exclude [comment])
   (:require [clojure.java.jdbc :as jdbc]
             [clojure.string :as str]
@@ -15,7 +19,7 @@
 
 (def ResourceName String)
 
-(def Resource 
+(def Resource
   {:name ResourceName
    :ddl (s/pred map?)
    :schema (s/pred map?)
@@ -62,11 +66,11 @@
        (def ~db-read-all-fn-sym     (db/make:read-all-fn ~name))
        (def ~db-update-multi-fn-sym (db/make:update-multi-fn ~name))
        (def ~db-delete-multi-fn-sym (db/make:delete-multi-fn ~name))
-       
+
        (state/register-create-multi-fn ~name ~db-create-multi-fn-sym)
        (state/register-update-multi-fn ~name ~db-update-multi-fn-sym)
-       (state/register-delete-multi-fn ~name ~db-delete-multi-fn-sym) 
-       
+       (state/register-delete-multi-fn ~name ~db-delete-multi-fn-sym)
+
        (def ~resource-single-post!-fn-sym
          (liberator/make:resource-single-post! ~db-create-fn-sym))
        (def ~resource-single-put!-fn-sym
@@ -83,16 +87,16 @@
        (def ~resource-multi-delete!-fn-sym
          (liberator/make:resource-multi-delete! ~db-delete-multi-fn-sym))
        (def ~resource-multi-exists?-fn-sym
-         (liberator/make:resource-multi-exists? ~db-read-all-fn-sym)) 
+         (liberator/make:resource-multi-exists? ~db-read-all-fn-sym))
 
        (let [shared-resource-opts#
              {:allowed-methods [:get :post :put :delete]
               :available-media-types ["application/json"]
               :authorized? (fn [ctx#]
-                             (liberator/authorized? liberator/default-auth ctx#)) 
+                             (liberator/authorized? liberator/default-auth ctx#))
               :handle-exception liberator/resource-handle-exception}]
          (lib/defresource ~liberator-single-resource-name
-           shared-resource-opts# 
+           shared-resource-opts#
            :post! ~resource-single-post!-fn-sym
            :put! ~resource-single-put!-fn-sym
            :delete! ~resource-single-delete!-fn-sym
@@ -112,7 +116,7 @@
                              ~liberator-single-resource-name
                              ~liberator-multi-resource-name))))
 
-(def resource-configs
+(def ^:private resource-configs
   [{:name "comment"
     :ddl {"text" "VARCHAR(50)"}
     :schema {(s/required-key "text") String}}
@@ -133,10 +137,13 @@
           "user_id" "INT NOT NULL"}
     :schema {(s/required-key "name") String}}])
 
-(defmacro gen-resources []
+(defmacro ^:private gen-resources* []
   `(do
      ~@(for [config resource-configs]
          `(defresource ~config))))
+
+(defn gen-resources []
+  (gen-resources*))
 
 ;; state/registry
 ;; (reset! state/registry {})
@@ -163,7 +170,7 @@ id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
 
   (jdbc/execute! db/db ["DROP TABLE comment"])
   (jdbc/execute! db/db ["DROP TABLE user"])
-  (jdbc/execute! db/db ["DROP TABLE role"]) 
+  (jdbc/execute! db/db ["DROP TABLE role"])
 
   (make-tables!)
 
