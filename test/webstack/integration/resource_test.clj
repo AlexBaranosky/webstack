@@ -37,11 +37,18 @@
       ;;         [:status :body])))
       )
 
-     (testing (str name " resource: single resource exists?")
+    (testing (str name " resource: single resource exists?")
       (is (= {:body "Resource not found."
               :status 404}
              (-> (client/get (str url "/1")
                              {:throw-exceptions false})
+                 (select-keys [:body :status]))))
+
+      (is (= {:status 200
+              :body []}
+             (-> (client/get url
+                             {:throw-exceptions false})
+                 (update :body json/decode)
                  (select-keys [:body :status])))))
 
     (testing (str name " resource: create first")

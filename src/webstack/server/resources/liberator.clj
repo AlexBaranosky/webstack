@@ -64,6 +64,4 @@
 
 (defn make:resource-multi-exists? [db-read-all-fn]
   (fn [ctx]
-    (some->> (db-read-all-fn)
-             seq
-             (hash-map ::values))))
+    {::values (db-read-all-fn)}))
