@@ -32,8 +32,6 @@
           {:strs [value]} (-> ctx :request :body slurp json/decode)]
       (db-create-fn id value))))
 
-
-
 (defn make:resource-single-put! [db-update-fn]
   (fn [ctx]
     (let [id (-> ctx :request :params :id)
@@ -57,4 +55,5 @@
 (defn make:resource-multi-exists? [db-read-all-fn]
   (fn [ctx]
     (some->> (db-read-all-fn)
+             seq
              (hash-map ::values))))
