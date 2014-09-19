@@ -43,8 +43,10 @@
         db-update-fn-sym (sym* name "-db-update")
         db-delete-fn-sym (sym* name "-db-delete")
 
-        db-read-all-fn-sym     (sym* name "-db-read-all")
         db-create-multi-fn-sym (sym* name "-db-create-multi")
+        db-read-all-fn-sym     (sym* name "-db-read-all")
+        db-update-multi-fn-sym (sym* name "-db-update-multi")
+        db-delete-multi-fn-sym (sym* name "-db-delete-multi")
 
         resource-single-post!-fn-sym   (sym* name "-resource-single-post!")
         resource-single-put!-fn-sym    (sym* name "-resource-single-put!")
@@ -52,6 +54,8 @@
         resource-single-exists?-fn-sym (sym* name "-resource-single-exists?")
 
         resource-multi-post!-fn-sym   (sym* name "-resource-multi-post!")
+        resource-multi-put!-fn-sym    (sym* name "-resource-multi-put!")
+        resource-multi-delete!-fn-sym (sym* name "-resource-multi-delete!")
         resource-multi-exists?-fn-sym (sym* name "-resource-multi-exists?")]
     `(do
        (def ~schema-sym       ~schema)
@@ -61,8 +65,10 @@
        (def ~db-update-fn-sym (db/make:update-fn registry ~name))
        (def ~db-delete-fn-sym (db/make:delete-fn registry ~name))
 
+       (def ~db-create-multi-fn-sym (db/make:create-multi-fn registry ~name))
        (def ~db-read-all-fn-sym     (db/make:read-all-fn registry ~name))
-       (def ~db-create-multi-fn-sym  (db/make:create-multi-fn registry ~name))
+       (def ~db-update-multi-fn-sym (db/make:update-multi-fn registry ~name))
+       (def ~db-delete-multi-fn-sym (db/make:delete-multi-fn registry ~name))
 
        (def ~resource-single-post!-fn-sym
          (liberator/make:resource-single-post! ~db-create-fn-sym))
@@ -75,17 +81,21 @@
 
        (def ~resource-multi-post!-fn-sym
          (liberator/make:resource-multi-post! ~db-create-multi-fn-sym))
+       (def ~resource-multi-put!-fn-sym
+         (liberator/make:resource-multi-put! ~db-update-multi-fn-sym))
+       (def ~resource-multi-delete!-fn-sym
+         (liberator/make:resource-multi-delete! ~db-delete-multi-fn-sym))
        (def ~resource-multi-exists?-fn-sym
          (liberator/make:resource-multi-exists? ~db-read-all-fn-sym))
 
        (let [shared-resource-opts#
-             {:authorized? (fn [ctx#]
-                             (liberator/authorized? liberator/default-auth ctx#))
+             {:allowed-methods [:get :post :put :delete]
               :available-media-types ["application/json"]
+              :authorized? (fn [ctx#]
+                             (liberator/authorized? liberator/default-auth ctx#)) 
               :handle-exception liberator/resource-handle-exception}]
          (lib/defresource ~liberator-single-resource-name
-           shared-resource-opts#
-           :allowed-methods [:get :post :put :delete]
+           shared-resource-opts# 
            :post! ~resource-single-post!-fn-sym
            :put! ~resource-single-put!-fn-sym
            :delete! ~resource-single-delete!-fn-sym
@@ -94,8 +104,9 @@
 
          (lib/defresource ~liberator-multi-resource-name
            shared-resource-opts#
-           :allowed-methods [:get :post]
            :post! ~resource-multi-post!-fn-sym
+           :put! ~resource-multi-put!-fn-sym
+           :delete! ~resource-multi-delete!-fn-sym
            :exists? ~resource-multi-exists?-fn-sym
            :handle-ok liberator/resource-multi-handle-ok))
 

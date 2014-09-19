@@ -52,6 +52,15 @@
     (db-create-multi-fn 
      (-> ctx :request :body slurp json/decode (get "values")))))
 
+(defn make:resource-multi-put! [db-update-multi-fn]
+  (fn [ctx]
+    (db-update-multi-fn
+     (-> ctx :request :body slurp json/decode (get "partial-values")))))
+
+(defn make:resource-multi-delete! [db-delete-multi-fn]
+  (fn [ctx]
+    ))
+
 (defn make:resource-multi-exists? [db-read-all-fn]
   (fn [ctx]
     (some->> (db-read-all-fn)

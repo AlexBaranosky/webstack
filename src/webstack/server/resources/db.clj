@@ -1,5 +1,6 @@
 (ns webstack.server.resources.db
   (:require [clojure.java.jdbc :as jdbc]
+            [clojure.string :as str]
             [webstack.dev :refer :all]))
 
 (def db {:classname "com.mysql.jdbc.Driver",
@@ -52,6 +53,12 @@
   (fn [id]
     (jdbc/delete! db table-name ["id = ?" id])))
 
+(defn make:create-multi-fn [registry-a table-name]
+  (let [create-single-fn (make:create-fn registry-a table-name)]
+    (fn [values]
+      (doseq [v values]
+        (create-single-fn (get v "id") v)))))
+
 (defn make:read-all-fn [registry-a table-name]
   (fn []
     (if-let [has-many-table (get-in @registry-a [table-name :has-many])]
@@ -69,8 +76,14 @@
               results))
       (jdbc/query db [(str "SELECT * FROM " table-name)]))))
 
-(defn make:create-multi-fn [registry-a table-name]
-  (let [create-single-fn (make:create-fn registry-a table-name)]
-    (fn [values]
-      (doseq [v values]
-        (create-single-fn (get v "id") v)))))
+(defn make:update-multi-fn [registry-a table-name]
+  (fn [partial-values]
+    (doseq [pv partial-values]
+      (look
+       (jdbc/update! db table-name pv ["id = ?" (get pv "id")])))))
+
+(defn make:delete-multi-fn [registry-a table-name]
+  (fn [ids]
+    (jdbc/execute! db [(format "DELETE FROM %s WHERE id IN (%s)"
+                               table-name
+                               (str/join ", " ids))])))

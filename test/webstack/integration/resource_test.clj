@@ -15,8 +15,10 @@
      ~@body))
 
 (defn check-resource
-  [{:keys [url create-value update-data invalid-value name]}]
-  (assert (and url create-value invalid-value update-data name))
+  [{:keys [name url create-value invalid-value
+            update-data update-data2 update-data3]}]
+  (assert (and  name url create-value invalid-value 
+                update-data update-data2 update-data3))
   (with-clean-db [(str name)]
     ;; (testing ~(str name " resource: validation")
     ;;   (is (= {:status 201
@@ -103,17 +105,31 @@
                               :throw-exceptions false})
                  (select-keys [:status :body])))))
 
+    (testing (str name " resource: update first and fourth")
+      (is (= {:status 201
+              :body ""}
+             (-> (client/put url
+                             {:body (json/encode
+                                     {:partial-values [(assoc update-data2 :id "1")
+                                                       (assoc update-data3 :id "4")]})
+                              :content-type :json
+                              :throw-exceptions false})
+                 (select-keys [:status :body])))))
+
     (is (= {:status 200
-            :body [(assoc create-value :id 1)
+            :body [(merge (assoc create-value :id 1)
+                           update-data2) 
                    (merge (assoc create-value :id 3)
                           update-data)
-                   (assoc create-value :id 4)]}
+                   (merge (assoc create-value :id 4)
+                          update-data3)]}
+
            (-> (client/get url {:content-type :json
                                 :throw-exceptions false})
                (select-keys [:status :body])
                (update :body json/decode keyword))))))
 
-;; TODO: test UPDATE
+;; TODO: add DELETE multi
 ;; TODO: validate inputted values
 ;; TODO: test :exists? functionality, and make it only occur on GETs
 
@@ -134,6 +150,8 @@
     :url "http://localhost:9444/resources/comments"
     :create-value {:text "My comment"}
     :update-data {:text "new comment"}
+    :update-data2 {:text "second new comment"}
+    :update-data3 {:text "third new comment"}
     :invalid-value {:comment "bad comment"}}))
 
 (deftest ^:integration test-user
@@ -144,4 +162,6 @@
                   :roles [{:name "admin"}]
                   :username "bobby999"}
    :update-data {:email "alex@hotmail.com"}
+   :update-data2 {:email "chris@cisco.com"}
+   :update-data3 {:email "david@ddd.com"}
    :invalid-value {:comment "bad comment"}})
