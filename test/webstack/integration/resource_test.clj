@@ -26,15 +26,23 @@
   (assert (and  name url create-value invalid-value
                 update-data update-data2 update-data3))
   (with-clean-db [(str name)]
-    ;; (testing ~(str name " resource: validation")
-    ;;   (is (= {:status 201
-    ;;           :body "..."}
-    ;;          (select-keys
-    ;;           (client/post ~(str url "/1")
-    ;;                        {:body (json/encode {:value ~invalid-value})
-    ;;                         :content-type :json
-    ;;                         :throw-exceptions false})
-    ;;           [:status :body]))))
+    (testing (str name " resource: validation")
+      ;; (is (= {:status 201
+      ;;         :body "..."}
+      ;;        (select-keys
+      ;;         (client/post (str url "/1")
+      ;;                      {:body (json/encode {:value invalid-value})
+      ;;                       :content-type :json
+      ;;                       :throw-exceptions false})
+      ;;         [:status :body])))
+      )
+
+     (testing (str name " resource: single resource exists?")
+      (is (= {:body "Resource not found."
+              :status 404}
+             (-> (client/get (str url "/1")
+                             {:throw-exceptions false})
+                 (select-keys [:body :status])))))
 
     (testing (str name " resource: create first")
       (is (= {:status 201
