@@ -79,8 +79,7 @@
 (defn make:update-multi-fn [registry-a table-name]
   (fn [partial-values]
     (doseq [pv partial-values]
-      (look
-       (jdbc/update! db table-name pv ["id = ?" (get pv "id")])))))
+      (jdbc/update! db table-name pv ["id = ?" (get pv "id")]))))
 
 (defn make:delete-multi-fn [registry-a table-name]
   (fn [ids]
