@@ -20,15 +20,18 @@
 (defn has-many [resource]
   (get-in (look @registry) [resource :has-many]))
 
+(def ResourceName String)
+
+(def Resource 
+  {:name ResourceName
+   :ddl (s/pred map?)
+   :schema (s/pred map?)
+   ;;(s/optional-key :belongs-to) ResourceName
+   (s/optional-key :has-many) ResourceName})
+
 (defmacro defresource [{:keys [name ddl schema belongs-to has-many]
                         :as resource}]
-  (when belongs-to
-    (assert (string? belongs-to)))
-  (when has-many
-    (assert (string? has-many)))
-  (assert (string? name))
-  (assert (map? ddl))
-  (assert schema)
+  (s/validate Resource resource)
   (register resource)
   (let [liberator-single-resource-name (sym* "liberator-single-resource-" name)
         liberator-multi-resource-name  (sym* "liberator-multi-resource-" name)
@@ -117,7 +120,7 @@
              (s/required-key "username") String}}
 
    {:name "role"
-    :belongs-to "user"
+    ;;:belongs-to "user"
     :ddl {"name" "VARCHAR(50)"
           "user_id" "INT NOT NULL"}
     :schema {(s/required-key "name") String}}])

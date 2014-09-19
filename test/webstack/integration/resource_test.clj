@@ -103,12 +103,29 @@
                     (select-keys [:status :body])
                     (update :body json/decode keyword))))))))
 
-;; deleting resource w/ children: should we do cascading delete?
+;; TODO: code's wrong:
 
+;; WRONG
+(defn make:resource-multi-exists? [db-read-all-fn]
+  (fn [ctx]
+    (some->> (db-read-all-fn)
+             (hash-map ::values))))
+
+;; RIGHT
+(defn make:resource-multi-exists? [db-read-all-fn]
+  (fn [ctx]
+    (some->> (db-read-all-fn)
+             seq
+             (hash-map ::values))))
+
+;; TODO: make has-many take a sequence of ResourceNames
+;; TODO: deleting resource w/ children: should we do cascading delete?
+
+;; TODO: Korma under the hood so I don't reimplement all of Korma?
 ;; TODO: validate inputted values
 ;; TODO: next, add more tests of all other REST operations
 ;; TODO: multi routes get ranges for front-end pagination ??
-;; TODO: has-many + belongs-to
+;; TODO: belongs-to ???
 ;; TODO: add foreign key constraints to DDL
 
 ;; TODO:  :webstack.server.resources/values
