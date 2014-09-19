@@ -7,18 +7,11 @@
             [webstack.dev :refer :all]
             [webstack.server.resources.db :as db]
             [webstack.server.resources.liberator :as liberator]
+            [webstack.server.resources.state :as state]
             [webstack.server.resources.routes :as resources-routes]))
-
-(defonce registry (atom {}))
 
 (defn- sym* [& pieces]
   (symbol (apply str pieces)))
-
-(defn- register [resource]
-  (swap! registry assoc (:name resource) resource))
-
-(defn has-many [resource]
-  (get-in (look @registry) [resource :has-many]))
 
 (def ResourceName String)
 
@@ -32,7 +25,7 @@
 (defmacro defresource [{:keys [name ddl schema belongs-to has-many]
                         :as resource}]
   (s/validate Resource resource)
-  (register resource)
+  (state/register resource)
   (let [liberator-single-resource-name (sym* "liberator-single-resource-" name)
         liberator-multi-resource-name  (sym* "liberator-multi-resource-" name)
 
@@ -60,16 +53,20 @@
     `(do
        (def ~schema-sym       ~schema)
        (def ~validate-fn-sym  (liberator/make:validate-fn '~schema-sym))
-       (def ~db-create-fn-sym (db/make:create-fn registry ~name))
-       (def ~db-read-fn-sym   (db/make:read-fn registry ~name))
-       (def ~db-update-fn-sym (db/make:update-fn registry ~name))
-       (def ~db-delete-fn-sym (db/make:delete-fn registry ~name))
+       (def ~db-create-fn-sym (db/make:create-fn ~name))
+       (def ~db-read-fn-sym   (db/make:read-fn ~name))
+       (def ~db-update-fn-sym (db/make:update-fn ~name))
+       (def ~db-delete-fn-sym (db/make:delete-fn ~name))
 
-       (def ~db-create-multi-fn-sym (db/make:create-multi-fn registry ~name))
-       (def ~db-read-all-fn-sym     (db/make:read-all-fn registry ~name))
-       (def ~db-update-multi-fn-sym (db/make:update-multi-fn registry ~name))
-       (def ~db-delete-multi-fn-sym (db/make:delete-multi-fn registry ~name))
-
+       (def ~db-create-multi-fn-sym (db/make:create-multi-fn ~name))
+       (def ~db-read-all-fn-sym     (db/make:read-all-fn ~name))
+       (def ~db-update-multi-fn-sym (db/make:update-multi-fn ~name))
+       (def ~db-delete-multi-fn-sym (db/make:delete-multi-fn ~name))
+       
+       (state/register-create-multi-fn ~name ~db-create-multi-fn-sym)
+       (state/register-update-multi-fn ~name ~db-update-multi-fn-sym)
+       (state/register-delete-multi-fn ~name ~db-delete-multi-fn-sym) 
+       
        (def ~resource-single-post!-fn-sym
          (liberator/make:resource-single-post! ~db-create-fn-sym))
        (def ~resource-single-put!-fn-sym
@@ -86,7 +83,7 @@
        (def ~resource-multi-delete!-fn-sym
          (liberator/make:resource-multi-delete! ~db-delete-multi-fn-sym))
        (def ~resource-multi-exists?-fn-sym
-         (liberator/make:resource-multi-exists? ~db-read-all-fn-sym))
+         (liberator/make:resource-multi-exists? ~db-read-all-fn-sym)) 
 
        (let [shared-resource-opts#
              {:allowed-methods [:get :post :put :delete]
@@ -141,12 +138,12 @@
      ~@(for [config resource-configs]
          `(defresource ~config))))
 
-;; registry
-;; (reset! registry {})
+;; state/registry
+;; (reset! state/registry {})
 (gen-resources)
 
 (defn gen-ddl []
-  (vec (for [[table resource] @registry
+  (vec (for [[table resource] @state/registry
              :let [col-spec (->> resource
                                  :ddl
                                  (map (fn [[k v]]
