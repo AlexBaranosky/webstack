@@ -59,7 +59,8 @@
 
 (defn make:resource-multi-delete! [db-delete-multi-fn]
   (fn [ctx]
-    ))
+    (db-delete-multi-fn
+     (-> ctx :request :body slurp json/decode (get "ids")))))
 
 (defn make:resource-multi-exists? [db-read-all-fn]
   (fn [ctx]

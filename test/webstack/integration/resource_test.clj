@@ -16,8 +16,8 @@
 
 (defn check-resource
   [{:keys [name url create-value invalid-value
-            update-data update-data2 update-data3]}]
-  (assert (and  name url create-value invalid-value 
+           update-data update-data2 update-data3]}]
+  (assert (and  name url create-value invalid-value
                 update-data update-data2 update-data3))
   (with-clean-db [(str name)]
     ;; (testing ~(str name " resource: validation")
@@ -118,7 +118,7 @@
 
     (is (= {:status 200
             :body [(merge (assoc create-value :id 1)
-                           update-data2) 
+                          update-data2)
                    (merge (assoc create-value :id 3)
                           update-data)
                    (merge (assoc create-value :id 4)
@@ -127,9 +127,25 @@
            (-> (client/get url {:content-type :json
                                 :throw-exceptions false})
                (select-keys [:status :body])
-               (update :body json/decode keyword))))))
+               (update :body json/decode keyword))))
 
-;; TODO: add DELETE multi
+    (testing (str name " resource: multiple deletes")
+      (is (= {:status 204
+              :body nil}
+             (-> (client/delete url
+                                {:body (json/encode {:ids ["1" "4"]})
+                                 :content-type :json
+                                 :throw-exceptions false})
+                 (select-keys [:status :body]))))
+
+      (is (= {:status 200
+              :body [(merge (assoc create-value :id 3)
+                            update-data)]}
+             (-> (client/get url {:content-type :json
+                                  :throw-exceptions false})
+                 (select-keys [:status :body])
+                 (update :body json/decode keyword)))))))
+
 ;; TODO: validate inputted values
 ;; TODO: test :exists? functionality, and make it only occur on GETs
 
