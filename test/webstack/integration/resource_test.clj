@@ -14,6 +14,12 @@
        (jdbc/execute! resources-db/db [(str "DELETE FROM " t#)]))
      ~@body))
 
+(defn- read-all [url]
+  (-> (client/get url {:content-type :json
+                       :throw-exceptions false})
+      (select-keys [:status :body])
+      (update :body json/decode keyword)))
+
 (defn check-resource
   [{:keys [name url create-value invalid-value
            update-data update-data2 update-data3]}]
@@ -82,10 +88,7 @@
                      (assoc create-value :id 2)
                      (assoc create-value :id 3)
                      (assoc create-value :id 4)]}
-             (-> (client/get url {:content-type :json
-                                  :throw-exceptions false})
-                 (select-keys [:status :body])
-                 (update :body json/decode keyword)))))
+             (read-all url))))
 
     (testing (str name " resource: delete second")
       (is (= {:status 204
@@ -123,11 +126,7 @@
                           update-data)
                    (merge (assoc create-value :id 4)
                           update-data3)]}
-
-           (-> (client/get url {:content-type :json
-                                :throw-exceptions false})
-               (select-keys [:status :body])
-               (update :body json/decode keyword))))
+           (read-all url)))
 
     (testing (str name " resource: multiple deletes")
       (is (= {:status 204
@@ -141,10 +140,7 @@
       (is (= {:status 200
               :body [(merge (assoc create-value :id 3)
                             update-data)]}
-             (-> (client/get url {:content-type :json
-                                  :throw-exceptions false})
-                 (select-keys [:status :body])
-                 (update :body json/decode keyword)))))))
+             (read-all url))))))
 
 ;; TODO: validate inputted values
 ;; TODO: test :exists? functionality, and make it only occur on GETs
